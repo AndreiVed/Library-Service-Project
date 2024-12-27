@@ -7,17 +7,21 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('books', '0001_initial'),
+        ("books", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='book',
-            options={'ordering': ['title']},
+            name="book",
+            options={"ordering": ["title"]},
         ),
         migrations.AlterField(
-            model_name='book',
-            name='daily_fee',
-            field=models.DecimalField(decimal_places=2, max_digits=6, validators=[django.core.validators.MinValueValidator(0.01)]),
+            model_name="book",
+            name="daily_fee",
+            field=models.DecimalField(
+                decimal_places=2,
+                max_digits=6,
+                validators=[django.core.validators.MinValueValidator(0.01)],
+            ),
         ),
     ]
