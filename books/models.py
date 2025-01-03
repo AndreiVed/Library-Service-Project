@@ -12,7 +12,7 @@ class Book(models.Model):
         max_length=4,
     )
     inventory = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)],
+        validators=[MinValueValidator(0)],
     )
     daily_fee = models.DecimalField(
         max_digits=6,
