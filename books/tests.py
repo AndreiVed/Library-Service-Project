@@ -44,7 +44,7 @@ class UnauthenticatedBookTest(TestCase):
         _test_book_list(self)
 
 
-class AuthenticatedBookTest(TestCase):
+class AuthenticatedUserBookTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = get_user_model().objects.create_user(

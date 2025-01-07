@@ -1,8 +1,7 @@
-from logging import raiseExceptions
-
 from django.core.exceptions import RequestAborted
-from django.shortcuts import render
-from rest_framework import mixins
+from rest_framework import mixins, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from borrowing.models import Borrowing
@@ -21,16 +20,16 @@ class BorrowingViewSet(
     mixins.RetrieveModelMixin,
     GenericViewSet,
 ):
-    queryset = Borrowing.objects.all()
+    queryset = Borrowing.objects.select_related("user", "book")
 
-    # @staticmethod
-    # def change_str_bool_to_int(is_active):
-    #     if is_active.lower() == "true":
-    #         return 1
-    #     if is_active.lower() == "false":
-    #         return 0
-    #     else:
-    #         raise RequestAborted("'is_active' must be 'true' or 'false'")
+    @staticmethod
+    def change_str_bool_to_int(is_active):
+        if is_active.lower() == "true":
+            return 1
+        if is_active.lower() == "false":
+            return 0
+        else:
+            raise RequestAborted("'is_active' must be 'true' or 'false'")
 
     def get_queryset(self):
         user = self.request.user
@@ -45,7 +44,11 @@ class BorrowingViewSet(
             queryset = queryset.filter(user_id=int(user_id))
 
         if is_active:
-            queryset = queryset.filter(is_active=int(is_active))
+            try:
+                is_active_int = self.change_str_bool_to_int(is_active)
+                queryset = queryset.filter(is_active=is_active_int)
+            except RequestAborted as e:
+                raise RequestAborted(str(e))
 
         return queryset
 
@@ -68,3 +71,15 @@ class BorrowingViewSet(
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=["post"], url_path="return")
+    def return_book(self, request, pk=None):
+        borrowing = self.get_object()
+        try:
+            borrowing.return_book()
+            return Response(
+                {"detail": "Book successfully returned"},
+                status=status.HTTP_200_OK,
+            )
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

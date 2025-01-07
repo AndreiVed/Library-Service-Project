@@ -1,3 +1,5 @@
+from django.utils.timezone import now
+
 from django.db import models
 
 from Library_service_project import settings
@@ -22,6 +24,16 @@ class Borrowing(models.Model):
 
     def __str__(self):
         return f"{self.borrow_date}, {self.book}, {self.user}"
+
+    def return_book(self):
+        if self.is_active:
+            self.is_active = False
+            self.actual_return_date = now()
+            self.book.inventory += 1
+            self.book.save()
+            self.save()
+        else:
+            raise ValueError("This borrowing is already returned")
 
     class Meta:
         ordering = ["-borrow_date"]
