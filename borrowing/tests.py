@@ -121,15 +121,38 @@ class BorrowingUserTest(TestCase):
     def test_user_borrowing_list(self):
         """
         test check what user can see only his borrowings list
+        and take empty response if user try to filter borrowings list by not himself`s user_id
         """
         user2 = sample_user(email="user2@test.com")
         sample_borrowing(user=user2)
 
         res = self.client.get(URL_BORROWING_LIST)
+        res1 = self.client.get(URL_BORROWING_LIST, {"user_id": user2.id})
         borrowings = Borrowing.objects.filter(user=self.user)
         serializer = BorrowingUserSerializer(borrowings, many=True)
 
         self.assertEqual(res.data, serializer.data)
+        self.assertEqual(res1.data, [])
+
+    def test_user_borrowings_filter_by_active(self):
+        """
+        test check what user can filter borrowings by is_active field
+        """
+        inactive_borrowing = sample_borrowing(
+            user=self.user, book=self.book, is_active=False
+        )
+
+        res1 = self.client.get(URL_BORROWING_LIST, {"is_active": "true"})
+        res2 = self.client.get(URL_BORROWING_LIST, {"is_active": "false"})
+
+        serializer1 = BorrowingUserSerializer(self.borrowing)
+        serializer2 = BorrowingUserSerializer(inactive_borrowing)
+
+        self.assertIn(serializer1.data, res1.data)
+        self.assertNotIn(serializer1.data, res2.data)
+
+        self.assertIn(serializer2.data, res2.data)
+        self.assertNotIn(serializer2.data, res1.data)
 
 
 class BorrowingAdminTest(TestCase):
@@ -157,3 +180,34 @@ class BorrowingAdminTest(TestCase):
         serializer = BorrowingAdminListSerializer(borrowings, many=True)
 
         self.assertEqual(res.data, serializer.data)
+
+    def test_admin_filter_by_is_active_and_user_id(self):
+        """
+        test check what admin can filter borrowings list by "user_id" and "is_active"
+        """
+        user1 = sample_user()
+        user2 = sample_user(email="user2@test.com")
+        sample_borrowing(user=user1)
+        sample_borrowing(user=user1, is_active=False)
+
+        sample_borrowing(user=user2)
+        sample_borrowing(user=user2, is_active=False)
+
+        inactive_borrowings = Borrowing.objects.filter(is_active=False)
+        res1 = self.client.get(URL_BORROWING_LIST, {"is_active": "false"})
+
+        borrowings_user1 = Borrowing.objects.filter(user=user1)
+        res2 = self.client.get(URL_BORROWING_LIST, {"user_id": user1.id})
+
+        borrowings_user1_active = Borrowing.objects.filter(user=user1, is_active=True)
+        res3 = self.client.get(
+            URL_BORROWING_LIST, {"user_id": user1.id, "is_active": "true"}
+        )
+
+        serializer1 = BorrowingAdminListSerializer(inactive_borrowings, many=True)
+        serializer2 = BorrowingAdminListSerializer(borrowings_user1, many=True)
+        serializer3 = BorrowingAdminListSerializer(borrowings_user1_active, many=True)
+
+        self.assertEqual(serializer1.data, res1.data)
+        self.assertEqual(serializer2.data, res2.data)
+        self.assertEqual(serializer3.data, res3.data)
