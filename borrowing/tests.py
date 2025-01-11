@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 from django.test import TestCase
 from django.utils.timezone import now
 from rest_framework import status
@@ -6,6 +7,11 @@ from rest_framework.test import APIClient
 from rest_framework.reverse import reverse
 from .models import Book, Borrowing
 from django.contrib.auth import get_user_model
+
+from .serializers import (
+    BorrowingUserSerializer,
+    BorrowingAdminListSerializer,
+)
 
 URL_BORROWING_LIST = reverse("borrowing:borrowing-list")
 EXPECTED_RETURN_DATE = (
@@ -27,23 +33,21 @@ def sample_book(**params):
 
 
 def sample_user(**params):
-    defaults = {"email": "test@test.com", "password": "password"}
+    defaults = {"email": "user@test.com", "password": "password1"}
 
     defaults.update(params)
     return get_user_model().objects.create_user(**defaults)
 
 
-# def sample_borrowing(**params):
-#     book = sample_book()
-#     user = sample_user()
-#     defaults = {
-#         "book": book.id,
-#         "user": user.id,
-#         "expected_return_date": EXPECTED_RETURN_DATE,
-#     }
-#
-#     defaults.update(params)
-#     return Borrowing.objects.create(**defaults)
+def sample_borrowing(**params):
+    book = sample_book(title="book1", inventory=2)
+    defaults = {
+        "book": book,
+        "expected_return_date": EXPECTED_RETURN_DATE,
+    }
+
+    defaults.update(params)
+    return Borrowing.objects.create(**defaults)
 
 
 class UnauthenticatedBorrowingTestBorrowing(TestCase):
@@ -51,10 +55,9 @@ class UnauthenticatedBorrowingTestBorrowing(TestCase):
         self.client = APIClient()
         self.book = sample_book()
         self.user = sample_user()
-        self.borrowing = Borrowing.objects.create(
+        self.borrowing = sample_borrowing(
             book=self.book,
             user=self.user,
-            expected_return_date=EXPECTED_RETURN_DATE,
         )
 
     def test_create_borrowing(self):
@@ -76,14 +79,16 @@ class BorrowingUserTest(TestCase):
         self.client = APIClient()
         self.user = sample_user()
         self.book = sample_book()
-        self.borrowing = Borrowing.objects.create(
+        self.borrowing = sample_borrowing(
             book=self.book,
             user=self.user,
-            expected_return_date=EXPECTED_RETURN_DATE,
         )
         self.client.force_authenticate(self.user)
 
     def test_create_borrowing(self):
+        """
+        test check what user can take a book and book inventory decreases by 1
+        """
         payload = {
             "book": self.book.id,
             "user": self.user.id,
@@ -98,6 +103,9 @@ class BorrowingUserTest(TestCase):
         self.assertEqual(self.book.inventory, 0)
 
     def test_return_book(self):
+        """
+        test check what user can return the book and book inventory increases by 1
+        """
         url = reverse(
             "borrowing:borrowing-return-book", kwargs={"pk": self.borrowing.id}
         )
@@ -110,11 +118,42 @@ class BorrowingUserTest(TestCase):
         self.assertFalse(self.borrowing.is_active)
         self.assertEqual(self.book.inventory, 2)
 
-    def test_user_borrow_list(self):
+    def test_user_borrowing_list(self):
         """
-        test check what user can see only his borrowing list
+        test check what user can see only his borrowings list
         """
-        # TODO create two users, one borrowing for each user,
-        # TODO check that count of borrowing in the list equal 1
-        # TODO check that borrowing owner is user1
-        pass
+        user2 = sample_user(email="user2@test.com")
+        sample_borrowing(user=user2)
+
+        res = self.client.get(URL_BORROWING_LIST)
+        borrowings = Borrowing.objects.filter(user=self.user)
+        serializer = BorrowingUserSerializer(borrowings, many=True)
+
+        self.assertEqual(res.data, serializer.data)
+
+
+class BorrowingAdminTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = sample_user(
+            email="admin@test.test",
+            password="testpassword",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_authenticate(self.admin)
+
+    def test_admin_borrowing_list(self):
+        """
+        test check what admin can see all borrowings list
+        """
+        user1 = sample_user()
+        user2 = sample_user(email="user2@test.com")
+        sample_borrowing(user=user1)
+        sample_borrowing(user=user2)
+
+        res = self.client.get(URL_BORROWING_LIST)
+        borrowings = Borrowing.objects.all()
+        serializer = BorrowingAdminListSerializer(borrowings, many=True)
+
+        self.assertEqual(res.data, serializer.data)
