@@ -44,7 +44,7 @@ class UnauthenticatedBookTest(TestCase):
         _test_book_list(self)
 
 
-class AuthenticatedBookTest(TestCase):
+class AuthenticatedUserBookTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = get_user_model().objects.create_user(
@@ -82,7 +82,7 @@ class AdminBookTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.admin = get_user_model().objects.create_user(
-            email="test@test.test",
+            email="admin@test.test",
             password="testpassword",
             is_staff=True,
             is_superuser=True,
