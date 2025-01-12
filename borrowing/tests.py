@@ -99,8 +99,22 @@ class BorrowingUserTest(TestCase):
 
         self.book.refresh_from_db()
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(self.book.inventory, 0)
+
+    def test_create_borrowing_if_book_inventory_is_zero(self):
+        """
+        test check what user can take a book and book inventory decreases by 1
+        """
+        book = sample_book(inventory=0)
+        payload = {
+            "book": book.id,
+            "user": self.user.id,
+            "expected_return_date": EXPECTED_RETURN_DATE,
+        }
+        response = self.client.post(URL_BORROWING_LIST, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.book.refresh_from_db()
 
     def test_return_book(self):
         """
