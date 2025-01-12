@@ -99,7 +99,7 @@ class BorrowingUserTest(TestCase):
 
         self.book.refresh_from_db()
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(self.book.inventory, 0)
 
     def test_return_book(self):
@@ -110,13 +110,29 @@ class BorrowingUserTest(TestCase):
             "borrowing:borrowing-return-book", kwargs={"pk": self.borrowing.id}
         )
         response = self.client.post(url)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["detail"], "Book successfully returned")
 
         self.borrowing.refresh_from_db()
         self.book.refresh_from_db()
 
         self.assertFalse(self.borrowing.is_active)
         self.assertEqual(self.book.inventory, 2)
+
+    def test_return_book_twice(self):
+        """
+        test check what user can not return the book twice
+        """
+        url = reverse(
+            "borrowing:borrowing-return-book", kwargs={"pk": self.borrowing.id}
+        )
+        self.client.post(url)
+        self.borrowing.refresh_from_db()
+
+        response = self.client.post(url)
+        self.assertFalse(self.borrowing.is_active)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["detail"], "This borrowing is already returned")
 
     def test_user_borrowing_list(self):
         """
