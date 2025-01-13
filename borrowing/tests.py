@@ -103,7 +103,7 @@ class BorrowingUserTest(TestCase):
 
     def test_create_borrowing_if_book_inventory_is_zero(self):
         """
-        test check what user can take a book and book inventory decreases by 1
+        test check what user can take a book and book inventory increases by 1
         """
         book = sample_book(inventory=0)
         payload = {
