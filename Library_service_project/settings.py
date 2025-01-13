@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "books",
     "user",
     "borrowing",
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -137,10 +138,18 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=3),
     "ROTATE_REFRESH_TOKEN": False,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Library service API",
+    "DESCRIPTION": "Documentation for Library service API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
