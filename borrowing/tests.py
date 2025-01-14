@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils.timezone import now
@@ -183,6 +184,26 @@ class BorrowingUserTest(TestCase):
 
         self.assertIn(serializer2.data, res2.data)
         self.assertNotIn(serializer2.data, res1.data)
+
+    @patch("borrowing.views.send_telegram_message")
+    def test_borrowing_create_sends_notification(self, mock_send_message):
+        payload = {
+            "book": self.book.id,
+            "user": self.user.id,
+            "expected_return_date": EXPECTED_RETURN_DATE,
+        }
+        response = self.client.post(URL_BORROWING_LIST, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        borrowing = Borrowing.objects.get(id=2)
+        message = (
+            f"New borrowing created:\n"
+            f"User: {self.user.email}\n"
+            f"Book: {self.book.title}\n"
+            f"Expected Return Date: {borrowing.expected_return_date}"
+        )
+
+        mock_send_message.assert_called_once_with(message)
 
 
 class BorrowingAdminTest(TestCase):
