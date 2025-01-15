@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from borrowing.helper import send_telegram_message
 from borrowing.models import Borrowing
 from borrowing.serializers import (
     BorrowingUserSerializer,
@@ -112,7 +113,14 @@ class BorrowingViewSet(
         return BorrowingCreateSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        borrowing = serializer.save(user=self.request.user)
+        message = (
+            f"New borrowing created:\n"
+            f"User: {borrowing.user.email}\n"
+            f"Book: {borrowing.book.title}\n"
+            f"Expected Return Date: {borrowing.expected_return_date}"
+        )
+        send_telegram_message(message)
 
     @extend_schema(
         summary="Return a borrowed book",
