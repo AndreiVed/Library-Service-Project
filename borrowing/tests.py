@@ -6,17 +6,18 @@ from django.utils.timezone import now
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework.reverse import reverse
-from .models import Book, Borrowing
 from django.contrib.auth import get_user_model
 
-from .serializers import (
+from books.models import Book
+from borrowing.models import Borrowing
+from borrowing.serializers import (
     BorrowingUserSerializer,
     BorrowingAdminListSerializer,
 )
 
 URL_BORROWING_LIST = reverse("borrowing:borrowing-list")
 EXPECTED_RETURN_DATE = (
-    f"{(now() + timedelta(days=5)).strftime("%Y-%m-%d")}"  # expected_return_date
+    f"{(now() + timedelta(days=5)).strftime('%Y-%m-%d')}"  # expected_return_date
 )
 
 
